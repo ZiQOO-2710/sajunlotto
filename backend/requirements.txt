@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+SQLAlchemy
+psycopg2-binary
+requests
+beautifulsoup4
+korean-lunar-calendar
+pandas
+numpy
+tensorflow
+scikit-learn
+pydantic-settings
