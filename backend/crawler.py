@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
-from . import crud
+import crud
 
 def get_lotto_numbers(draw_no: int):
     """

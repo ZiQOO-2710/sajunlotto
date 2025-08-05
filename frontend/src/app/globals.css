@@ -1,0 +1,189 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Korean font optimization */
+  html {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Remove tap highlight on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400;
+  }
+}
+
+@layer components {
+  /* Button components */
+  .btn-primary {
+    @apply bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-purple-600 border-2 border-purple-200 py-3 px-6 rounded-xl font-semibold hover:bg-purple-50 transition-colors duration-200;
+  }
+
+  /* Card components */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6;
+  }
+
+  .card-hover {
+    @apply hover:shadow-lg hover:border-slate-300 transition-all duration-200;
+  }
+
+  /* Fortune elements styling */
+  .fortune-wood {
+    @apply bg-gradient-to-br from-green-50 to-emerald-50 border-green-100;
+  }
+
+  .fortune-fire {
+    @apply bg-gradient-to-br from-red-50 to-orange-50 border-red-100;
+  }
+
+  .fortune-earth {
+    @apply bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-100;
+  }
+
+  .fortune-metal {
+    @apply bg-gradient-to-br from-gray-50 to-slate-50 border-gray-100;
+  }
+
+  .fortune-water {
+    @apply bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100;
+  }
+
+  /* Lottery number ball */
+  .lotto-ball {
+    @apply w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg;
+  }
+
+  .lotto-ball-blue {
+    @apply bg-gradient-to-br from-blue-500 to-blue-600;
+  }
+
+  .lotto-ball-red {
+    @apply bg-gradient-to-br from-red-500 to-red-600;
+  }
+
+  .lotto-ball-yellow {
+    @apply bg-gradient-to-br from-yellow-500 to-orange-500;
+  }
+
+  .lotto-ball-green {
+    @apply bg-gradient-to-br from-green-500 to-emerald-600;
+  }
+
+  .lotto-ball-purple {
+    @apply bg-gradient-to-br from-purple-500 to-purple-600;
+  }
+
+  .lotto-ball-bonus {
+    @apply bg-gradient-to-br from-orange-500 to-red-500;
+  }
+}
+
+@layer utilities {
+  /* Text gradients */
+  .text-gradient {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600;
+  }
+
+  .text-gradient-fortune {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-yellow-500 to-purple-600;
+  }
+
+  /* Animations */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+
+  .animate-bounce-gentle {
+    animation: bounceGentle 2s infinite;
+  }
+
+  /* Mobile optimizations */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  .select-none {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceGentle {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-15px);
+  }
+}
+
+/* Progressive Web App */
+@media (display-mode: standalone) {
+  body {
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+}

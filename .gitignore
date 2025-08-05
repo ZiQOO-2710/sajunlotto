@@ -40,3 +40,34 @@ server.log
 # Build outputs
 dist/
 build/
+.next/
+out/
+
+# ML Models (large files)
+*.h5
+*.pkl
+*.keras
+*.joblib
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+nul
+
+# Claude settings (personal)
+.claude/settings.local.json
+
+# Development/test files
+test_*.py
+*_test.py
+simple_*.py
+simple_*.html
+prediction_comparison_results.json
+push_to_github.sh
+
+# Local environment
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
