@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>CORS & Login Test</h1>
+    
+    <div>
+        <button onclick="testCORS()">Test CORS Preflight</button>
+        <button onclick="testLogin()">Test Login</button>
+        <button onclick="testRegister()">Test Register</button>
+        <button onclick="testPredict()">Test Predict API</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = 'test-result ' + type;
+            div.innerHTML = message;
+            document.getElementById('results').appendChild(div);
+        }
+
+        async function testCORS() {
+            addResult('Testing CORS preflight...', 'info');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:4004/auth/login', {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'http://localhost:4003',
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                addResult(`CORS Preflight: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                const headers = {};
+                for (let [key, value] of response.headers.entries()) {
+                    headers[key] = value;
+                }
+                addResult(`Headers: ${JSON.stringify(headers, null, 2)}`, 'info');
+                
+            } catch (error) {
+                addResult(`CORS Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLogin() {
+            addResult('Testing Login API...', 'info');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:4004/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com'
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                
+                const data = await response.json();
+                addResult('✅ Login Success!', 'success');
+                addResult(`User: ${JSON.stringify(data, null, 2)}`, 'info');
+                
+            } catch (error) {
+                addResult(`❌ Login Error: ${error.message}`, 'error');
+                console.error('Login Error:', error);
+            }
+        }
+
+        async function testRegister() {
+            addResult('Testing Register API...', 'info');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:4004/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: `test${Date.now()}@example.com`,
+                        name: 'Test User'
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                
+                const data = await response.json();
+                addResult('✅ Register Success!', 'success');
+                addResult(`User: ${JSON.stringify(data, null, 2)}`, 'info');
+                
+            } catch (error) {
+                addResult(`❌ Register Error: ${error.message}`, 'error');
+                console.error('Register Error:', error);
+            }
+        }
+
+        async function testPredict() {
+            addResult('Testing Predict API...', 'info');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:4004/predict/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        birth_year: 1990,
+                        birth_month: 5,
+                        birth_day: 15,
+                        birth_hour: 10,
+                        name: 'Test User'
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                
+                const data = await response.json();
+                addResult('✅ Predict Success!', 'success');
+                addResult(`Numbers: ${JSON.stringify(data.predicted_numbers)}`, 'info');
+                addResult(`Confidence: ${Math.round(data.confidence * 100)}%`, 'info');
+                
+            } catch (error) {
+                addResult(`❌ Predict Error: ${error.message}`, 'error');
+                console.error('Predict Error:', error);
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            addResult('🚀 Starting automatic tests...', 'info');
+            setTimeout(() => testLogin(), 500);
+            setTimeout(() => testPredict(), 1500);
+        };
+    </script>
+</body>
+</html>

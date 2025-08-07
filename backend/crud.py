@@ -20,6 +20,20 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    
+    # 생년월일시 정보가 있으면 자동으로 사주 프로필도 생성
+    if all([user.birth_year, user.birth_month, user.birth_day, user.birth_hour]):
+        saju_profile_data = schemas.SajuProfileCreate(
+            birth_year=user.birth_year,
+            birth_month=user.birth_month,
+            birth_day=user.birth_day,
+            birth_hour=user.birth_hour,
+            name=user.name,
+            gender=user.gender or 'male'
+        )
+        create_saju_profile(db, db_user.id, saju_profile_data)
+        db.refresh(db_user)
+    
     return db_user
 
 def login_user(db: Session, email: str):

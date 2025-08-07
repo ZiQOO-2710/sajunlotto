@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 예측 서비스 모듈
 로또 번호 예측 관련 로직을 제공합니다.
@@ -10,6 +11,7 @@ from typing import List, Dict, Tuple, Optional
 from database import SessionLocal
 from models import LottoDraw
 from saju import analyze_saju
+from saju_knowledge_enhancer import SajuKnowledgeEnhancer
 
 
 class PredictionService:
@@ -23,6 +25,14 @@ class PredictionService:
             '금': {'range': (30, 39), 'weight': 1.0},
             '수': {'range': (40, 45), 'weight': 1.0}
         }
+        # YouTube 학습 지식 향상 시스템 초기화
+        try:
+            self.knowledge_enhancer = SajuKnowledgeEnhancer()
+            self.use_knowledge_enhancement = True
+        except Exception as e:
+            print(f"[WARNING] 지식 향상 시스템 초기화 실패: {e}")
+            self.knowledge_enhancer = None
+            self.use_knowledge_enhancement = False
     
     def load_historical_data(self) -> Tuple[List[LottoDraw], Dict]:
         """데이터베이스에서 로또 데이터 로드 및 기본 분석"""
@@ -105,23 +115,35 @@ class PredictionService:
         
         # 번호별 점수 계산
         number_scores = []
+        max_score = 0
+        
         for num, freq in top_numbers:
             base_score = freq  # 기본 점수는 출현 빈도
             element = self._get_number_element(num)
-            weighted_score = base_score * element_weights.get(element, 1.0)
+            weight = element_weights.get(element, 1.0)
+            weighted_score = base_score * weight
+            max_score = max(max_score, weighted_score)
             
             number_scores.append({
                 'number': num,
                 'score': weighted_score,
                 'element': element,
                 'frequency': freq,
-                'weight': element_weights.get(element, 1.0)
+                'weight': weight
             })
+        
+        # 적합도 계산 및 사주 풀이 추가
+        for score_info in number_scores:
+            compatibility = min(100, (score_info['score'] / max_score * 100)) if max_score > 0 else 50
+            score_info['compatibility'] = round(compatibility, 1)
+            score_info['saju_explanation'] = self._generate_saju_explanation(
+                score_info['number'], score_info['element'], saju_oheang, score_info['weight']
+            )
         
         # 점수 순으로 정렬
         number_scores.sort(key=lambda x: x['score'], reverse=True)
         
-        # 상위 6개 번호 선택 (중복 제거)
+        # 상위 7개 번호 선택 (중복 제거)
         predicted_numbers = []
         used_numbers = set()
         
@@ -130,23 +152,23 @@ class PredictionService:
             if num not in used_numbers and 1 <= num <= 45:
                 predicted_numbers.append(num)
                 used_numbers.add(num)
-                if len(predicted_numbers) == 6:
+                if len(predicted_numbers) == 7:
                     break
         
-        # 6개가 안되면 추가 번호 선택
-        while len(predicted_numbers) < 6:
+        # 7개가 안되면 추가 번호 선택
+        while len(predicted_numbers) < 7:
             for num in range(1, 46):
                 if num not in used_numbers:
                     predicted_numbers.append(num)
                     used_numbers.add(num)
-                    if len(predicted_numbers) == 6:
+                    if len(predicted_numbers) == 7:
                         break
         
         predicted_numbers.sort()
         
-        # 신뢰도 계산 (상위 6개 번호의 평균 점수 기준)
-        top_6_scores = [score['score'] for score in number_scores[:6]]
-        confidence = np.mean(top_6_scores) / max(top_6_scores) if top_6_scores else 0.5
+        # 신뢰도 계산 (상위 7개 번호의 평균 점수 기준)
+        top_7_scores = [score['score'] for score in number_scores[:7]]
+        confidence = np.mean(top_7_scores) / max_score if max_score > 0 else 0.5
         
         return {
             'predicted_numbers': predicted_numbers,
@@ -201,7 +223,7 @@ class PredictionService:
     def generate_prediction(self, birth_year: int, birth_month: int, 
                           birth_day: int, birth_hour: int, 
                           name: Optional[str] = None) -> Dict:
-        """종합 예측 생성"""
+        """종합 예측 생성 (YouTube 학습 지식 통합)"""
         try:
             # 1. 히스토리컬 데이터 로드
             lotto_draws, stats = self.load_historical_data()
@@ -209,31 +231,110 @@ class PredictionService:
             # 2. 패턴 분석
             pattern_analysis = self.analyze_number_patterns(lotto_draws)
             
-            # 3. 사주 분석
+            # 3. 기본 사주 분석
             saju_analysis = self.get_saju_analysis(birth_year, birth_month, birth_day, birth_hour)
             
-            # 4. 예측 수행
+            # 4. YouTube 학습 지식 적용 (가능한 경우)
+            knowledge_insights = None
+            enhanced_saju_analysis = saju_analysis
+            
+            if self.use_knowledge_enhancement and self.knowledge_enhancer:
+                try:
+                    # 학습된 사주 지식 추출
+                    knowledge_insights = self.knowledge_enhancer.get_learned_saju_insights(
+                        birth_year, birth_month, birth_day
+                    )
+                    
+                    # 사주 분석에 지식 적용
+                    enhanced_saju_analysis = self.knowledge_enhancer.enhance_prediction_weights(
+                        saju_analysis, knowledge_insights
+                    )
+                    
+                    print(f"[KNOWLEDGE] YouTube 학습 지식 적용됨: {len(knowledge_insights.get('relevant_knowledge', []))}개 지식 활용")
+                    
+                except Exception as e:
+                    print(f"[WARNING] 지식 향상 적용 실패: {e}")
+            
+            # 5. 예측 수행 (향상된 사주 분석 사용)
             top_numbers = [(item['number'], item['frequency']) 
                           for item in pattern_analysis['top_numbers']]
             
             prediction_result = self.predict_with_saju_weighting(
-                top_numbers, saju_analysis['oheang']
+                top_numbers, enhanced_saju_analysis['oheang']
             )
             
-            return {
+            # 6. 지식 향상 정보를 결과에 추가
+            result = {
                 'predicted_numbers': prediction_result['predicted_numbers'],
-                'saju_analysis': saju_analysis,
+                'saju_analysis': enhanced_saju_analysis,
                 'number_scores': prediction_result['number_scores'],
                 'historical_stats': stats,
                 'pattern_analysis': pattern_analysis,
-                'method': 'saju_weighted_frequency',
+                'method': 'saju_weighted_frequency_with_youtube_knowledge' if knowledge_insights else 'saju_weighted_frequency',
                 'confidence': prediction_result['confidence'],
                 'generated_at': datetime.now()
             }
             
+            # YouTube 지식 정보 추가
+            if knowledge_insights:
+                result['knowledge_enhancement'] = {
+                    'insights_applied': len(knowledge_insights.get('relevant_knowledge', [])),
+                    'element_adjustments': knowledge_insights.get('element_adjustments', {}),
+                    'confidence_boost': knowledge_insights.get('confidence_modifiers', {}).get('base_confidence_adjustment', 0.0),
+                    'recommendations': knowledge_insights.get('additional_recommendations', []),
+                    'knowledge_source': 'YouTube 사주 영상 학습 데이터'
+                }
+                
+                # 신뢰도 향상 적용
+                confidence_boost = knowledge_insights.get('confidence_modifiers', {}).get('base_confidence_adjustment', 0.0)
+                if confidence_boost > 0:
+                    result['confidence'] = min(1.0, result['confidence'] + confidence_boost)
+            
+            return result
+            
         except Exception as e:
             raise ValueError(f"예측 생성 중 오류 발생: {str(e)}")
+    
+    def _generate_saju_explanation(self, number: int, element: str, 
+                                 saju_oheang: Dict[str, int], weight: float) -> str:
+        """번호별 사주 기반 풀이 생성"""
+        
+        # 단순 한글 설명 (인코딩 안전)
+        element_names = {
+            '목': '나무',
+            '화': '불', 
+            '토': '흙',
+            '금': '금속',
+            '수': '물'
+        }
+        
+        element_traits = {
+            '목': '성장운',
+            '화': '열정운', 
+            '토': '안정운',
+            '금': '결단운',
+            '수': '지혜운'
+        }
+        
+        # 사용자의 해당 원소 강도
+        user_element_count = saju_oheang.get(element, 0)
+        
+        # 원소 정보
+        elem_name = element_names.get(element, element)
+        trait = element_traits.get(element, '특별운')
+        
+        # 간단한 설명
+        if user_element_count >= 2:
+            reason = f"{elem_name} 기운이 강함"
+        elif user_element_count >= 1:
+            reason = f"{elem_name} 기운과 조화"
+        else:
+            reason = f"{elem_name} 기운 보완"
+        
+        explanation = f"{trait}의 {number}번 - {reason}"
+        return explanation
 
 
 # 전역 예측 서비스 인스턴스
-prediction_service = PredictionService()
+prediction_service = PredictionService()# Force reload
+# Force reload 2025년 08월  6일 수 오후  2:52:32

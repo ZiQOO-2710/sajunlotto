@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>Backend API Test</h1>
+    <button onclick="testAPI()">Test Predict API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:4002/predict/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        birth_year: 1990,
+                        birth_month: 5,
+                        birth_day: 15,
+                        birth_hour: 10,
+                        name: 'Test User'
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                
+                const data = await response.json();
+                resultDiv.innerHTML = '<h3>Success!</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+            } catch (error) {
+                resultDiv.innerHTML = '<h3>Error:</h3><p>' + error.message + '</p>';
+                console.error('API Test Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

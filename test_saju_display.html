@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Saju Palji Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6 text-center">사주팔자 (四柱八字) 테스트</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-6">
+            <div class="mb-4">
+                <button onclick="testPrediction()" class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                    사주 예측 테스트 (1990/5/15 10시)
+                </button>
+            </div>
+            
+            <div id="result" class="hidden">
+                <div class="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-3 text-center">사주팔자 (四柱八字)</h3>
+                    <div class="grid grid-cols-4 gap-3 text-center" id="saju-display">
+                        <!-- 사주팔자 표시 영역 -->
+                    </div>
+                    <div class="mt-3 text-center">
+                        <div class="flex justify-center space-x-8 text-xs text-slate-500">
+                            <span>천간</span>
+                            <span>지지</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <h4 class="text-lg font-semibold mb-3">예측된 번호</h4>
+                    <div id="predicted-numbers" class="flex flex-wrap gap-2">
+                        <!-- 예측 번호 표시 영역 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function testPrediction() {
+            try {
+                console.log('Testing prediction...');
+                
+                const response = await fetch('http://127.0.0.1:4004/predict/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        birth_year: 1990,
+                        birth_month: 5,
+                        birth_day: 15,
+                        birth_hour: 10,
+                        name: 'Test User'
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                
+                const data = await response.json();
+                console.log('Prediction result:', data);
+                
+                displaySajuPalji(data.saju_analysis.raw_result.saju);
+                displayPredictedNumbers(data.predicted_numbers);
+                
+                document.getElementById('result').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function displaySajuPalji(saju) {
+            const sajuDisplay = document.getElementById('saju-display');
+            const pillars = [
+                { name: '년주', data: saju.year, isMain: false },
+                { name: '월주', data: saju.month, isMain: false },
+                { name: '일주', data: saju.day, isMain: true },
+                { name: '시주', data: saju.hour, isMain: false }
+            ];
+            
+            sajuDisplay.innerHTML = pillars.map(pillar => {
+                const borderClass = pillar.isMain ? 'border-2 border-purple-200' : '';
+                const mainText = pillar.isMain ? '<div class="text-xs text-purple-500 font-medium">본인</div>' : '';
+                
+                return `
+                    <div class="space-y-2">
+                        <div class="text-xs text-slate-500 font-medium">${pillar.name}</div>
+                        <div class="bg-white p-2 rounded-md shadow-sm ${borderClass}">
+                            <div class="text-lg font-bold text-purple-600">${pillar.data[0]}</div>
+                            <div class="text-sm text-slate-600">${pillar.data[1]}</div>
+                        </div>
+                        ${mainText}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function displayPredictedNumbers(numbers) {
+            const numbersDisplay = document.getElementById('predicted-numbers');
+            numbersDisplay.innerHTML = numbers.map(num => 
+                `<span class="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-full font-bold">${num}</span>`
+            ).join('');
+        }
+    </script>
+</body>
+</html>

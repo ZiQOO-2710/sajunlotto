@@ -1,13 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Star, Sparkles, TrendingUp, Users, Award, Calendar, BarChart3 } from 'lucide-react';
+import { Star, Sparkles, TrendingUp, Users, Award, Calendar, BarChart3, User } from 'lucide-react';
 import Link from 'next/link';
+import { useUser } from '../contexts/UserContext';
+import AuthModal from './AuthModal';
+import UserProfile from './UserProfile';
 
 const MainPage = () => {
+  const { user, userProfile } = useUser();
   const [showForm, setShowForm] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
     birth_year: '',
     birth_month: '',
     birth_day: '',
@@ -15,13 +20,14 @@ const MainPage = () => {
     name: '',
     gender: 'male'
   });
-  const [result, setResult] = useState(null);
-  const [predictedNumbers, setPredictedNumbers] = useState(null);
+  const [result, setResult] = useState<any>(null);
+  const [predictedNumbers, setPredictedNumbers] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [predictionLoading, setPredictionLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -34,17 +40,17 @@ const MainPage = () => {
     setError(null);
     
     try {
-      const response = await fetch('http://127.0.0.1:4002/predict/quick', {
+      const response = await fetch('http://127.0.0.1:4004/predict/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({
           birth_year: parseInt(formData.birth_year),
           birth_month: parseInt(formData.birth_month),
           birth_day: parseInt(formData.birth_day),
           birth_hour: parseInt(formData.birth_hour),
-          name: formData.name
+          name: formData.name ? encodeURIComponent(formData.name) : 'User'
         }),
       });
       
@@ -55,7 +61,7 @@ const MainPage = () => {
       const predictionResult = await response.json();
       setPredictedNumbers(predictionResult);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('예측 오류:', error);
       setError('예측 번호 생성 중 오류가 발생했습니다: ' + error.message);
     } finally {
@@ -63,24 +69,24 @@ const MainPage = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     
     try {
       // 바로 예측 API 호출 (사용자 생성 없이 간단하게)
-      const response = await fetch('http://127.0.0.1:4002/predict/quick', {
+      const response = await fetch('http://127.0.0.1:4004/predict/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({
           birth_year: parseInt(formData.birth_year),
           birth_month: parseInt(formData.birth_month),
           birth_day: parseInt(formData.birth_day),
           birth_hour: parseInt(formData.birth_hour),
-          name: formData.name || '사용자'
+          name: formData.name ? encodeURIComponent(formData.name) : 'User'
         }),
       });
       
@@ -96,7 +102,7 @@ const MainPage = () => {
         oheng_json: predictionResult.saju_elements
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('예측 오류:', error);
       setError('예측 번호 생성 중 오류가 발생했습니다: ' + error.message);
     } finally {
@@ -151,13 +157,38 @@ const MainPage = () => {
                 <p className="text-xs text-slate-500">운명과 행운의 만남</p>
               </div>
             </div>
-            <Link 
-              href="/analysis"
-              className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-              title="로또 데이터 분석"
-            >
-              <BarChart3 className="w-5 h-5 text-slate-600" />
-            </Link>
+            <div className="flex items-center space-x-2">
+              <Link 
+                href="/analysis"
+                className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                title="로또 데이터 분석"
+              >
+                <BarChart3 className="w-5 h-5 text-slate-600" />
+              </Link>
+              
+              {user ? (
+                <button
+                  onClick={() => setShowProfileModal(true)}
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                  title="내 프로필"
+                >
+                  <User className="w-5 h-5 text-slate-600" />
+                  <span className="text-xs font-medium text-slate-600 hidden sm:block">
+                    {user.name || '프로필'}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    console.log('Login button clicked');
+                    setShowAuthModal(true);
+                  }}
+                  className="px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  로그인
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -184,12 +215,29 @@ const MainPage = () => {
             개인 맞춤형 로또 번호를 예측합니다
           </p>
           <button 
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              console.log('Button clicked! User:', user);
+              if (!user) {
+                console.log('Opening auth modal');
+                setShowAuthModal(true);
+              } else {
+                console.log('Opening form');
+                setShowForm(true);
+              }
+            }}
             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
           >
             🎯 행운 번호 예측하기
             <Sparkles className="inline-block w-5 h-5 ml-2" />
           </button>
+          
+          {!user && (
+            <div className="mt-3 text-center">
+              <p className="text-sm text-slate-500">
+                로그인하고 나만의 예측 기록을 관리하세요
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -230,19 +278,6 @@ const MainPage = () => {
           <div className="max-w-md mx-auto">
             <h3 className="text-lg font-bold text-slate-800 mb-6 text-center">사주 정보 입력</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">이메일</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="example@email.com"
-                />
-              </div>
-              
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">이름</label>
                 <input
@@ -364,12 +399,12 @@ const MainPage = () => {
                 <p className="text-slate-600">{result.name}님을 위한 맞춤 예측</p>
               </div>
 
-              {/* 로또 번호 6개 */}
-              <div className="flex items-center justify-center space-x-2 mb-6">
-                {predictedNumbers.predicted_numbers.map((number, index) => (
+              {/* 로또 번호 7개 */}
+              <div className="flex items-center justify-center space-x-1 mb-6">
+                {predictedNumbers.predicted_numbers.map((number: number, index: number) => (
                   <div
                     key={index}
-                    className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg transform hover:scale-105 transition-transform duration-200"
+                    className="w-11 h-11 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-base shadow-lg transform hover:scale-105 transition-transform duration-200"
                     style={{
                       animationDelay: `${index * 0.1}s`,
                       animation: 'fadeInUp 0.6s ease-out forwards'
@@ -400,16 +435,87 @@ const MainPage = () => {
             <div className="bg-white p-6 rounded-xl shadow-lg border border-purple-100">
               <h4 className="text-lg font-bold text-purple-600 mb-4 text-center">사주 분석 결과</h4>
               
-              <div className="text-center mb-4">
-                <p className="text-slate-600">{result.birth_ymdh}</p>
+              <div className="text-center mb-6">
+                <p className="text-slate-600 font-medium">{formData.birth_year}-{formData.birth_month.padStart(2, '0')}-{formData.birth_day.padStart(2, '0')} {formData.birth_hour.padStart(2, '0')}시</p>
+                {predictedNumbers.saju_analysis?.lunar_info && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    음력: {predictedNumbers.saju_analysis.lunar_info.year}-{predictedNumbers.saju_analysis.lunar_info.month}-{predictedNumbers.saju_analysis.lunar_info.day}
+                  </p>
+                )}
               </div>
 
+              {/* 사주팔자 표시 */}
+              {predictedNumbers.saju_analysis?.raw_result?.saju && (
+                <div className="mb-6">
+                  <h5 className="text-md font-semibold text-slate-800 mb-3 text-center">사주팔자 (四柱八字)</h5>
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border">
+                    <div className="grid grid-cols-4 gap-3 text-center">
+                      <div className="space-y-2">
+                        <div className="text-xs text-slate-500 font-medium">년주</div>
+                        <div className="bg-white p-2 rounded-md shadow-sm">
+                          <div className="text-lg font-bold text-purple-600">
+                            {predictedNumbers.saju_analysis.raw_result.saju.year[0]}
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            {predictedNumbers.saju_analysis.raw_result.saju.year[1]}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-xs text-slate-500 font-medium">월주</div>
+                        <div className="bg-white p-2 rounded-md shadow-sm">
+                          <div className="text-lg font-bold text-purple-600">
+                            {predictedNumbers.saju_analysis.raw_result.saju.month[0]}
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            {predictedNumbers.saju_analysis.raw_result.saju.month[1]}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-xs text-slate-500 font-medium">일주</div>
+                        <div className="bg-white p-2 rounded-md shadow-sm border-2 border-purple-200">
+                          <div className="text-lg font-bold text-purple-600">
+                            {predictedNumbers.saju_analysis.raw_result.saju.day[0]}
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            {predictedNumbers.saju_analysis.raw_result.saju.day[1]}
+                          </div>
+                        </div>
+                        <div className="text-xs text-purple-500 font-medium">본인</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-xs text-slate-500 font-medium">시주</div>
+                        <div className="bg-white p-2 rounded-md shadow-sm">
+                          <div className="text-lg font-bold text-purple-600">
+                            {predictedNumbers.saju_analysis.raw_result.saju.hour[0]}
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            {predictedNumbers.saju_analysis.raw_result.saju.hour[1]}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-center">
+                      <div className="flex justify-center space-x-8 text-xs text-slate-500">
+                        <span>천간</span>
+                        <span>지지</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 오행 분포 */}
               <div className="mb-6">
-                <h5 className="text-md font-semibold text-slate-800 mb-3">오행 분포</h5>
+                <h5 className="text-md font-semibold text-slate-800 mb-3">오행 분포 (사주의 기본 에너지)</h5>
+                <p className="text-xs text-slate-500 mb-3">
+                  목(나무): 성장·발전 | 화(불): 열정·창조 | 토(흙): 안정·포용 | 금(금속): 결단·완성 | 수(물): 지혜·유연
+                </p>
                 <div className="grid grid-cols-5 gap-2">
-                  {Object.entries(result.oheng_json).map(([element, count]) => (
+                  {predictedNumbers.saju_analysis?.oheang && Object.entries(predictedNumbers.saju_analysis.oheang).map(([element, count]) => (
                     <div key={element} className="text-center p-3 bg-slate-50 rounded-lg">
-                      <div className="text-lg font-bold text-purple-600">{count}</div>
+                      <div className="text-lg font-bold text-purple-600">{count as number}</div>
                       <div className="text-sm text-slate-600">{element}</div>
                     </div>
                   ))}
@@ -417,17 +523,96 @@ const MainPage = () => {
               </div>
 
               {/* 번호 생성 시간 */}
-              <div className="text-center text-xs text-slate-400 mb-4">
+              <div className="text-center text-xs text-slate-400">
                 생성 시간: {new Date(predictedNumbers.generated_at).toLocaleString('ko-KR')}
               </div>
             </div>
+
+            {/* 번호별 사주 풀이 */}
+            {predictedNumbers.number_scores && predictedNumbers.number_scores.length > 0 && (
+              <div className="bg-white p-6 rounded-xl shadow-lg border border-purple-100">
+                <h4 className="text-lg font-bold text-purple-600 mb-4 text-center">번호별 사주 풀이</h4>
+                <div className="space-y-4">
+                  {predictedNumbers.number_scores
+                    .filter(score => predictedNumbers.predicted_numbers.includes(score.number))
+                    .sort((a, b) => (b.compatibility || 0) - (a.compatibility || 0))
+                    .map((numberInfo: any, index: number) => {
+                      // 한글 사주 설명 생성
+                      const elementNames = {
+                        '목': '나무',
+                        '화': '불',
+                        '토': '흙', 
+                        '금': '금속',
+                        '수': '물'
+                      };
+                      
+                      const elementTraits = {
+                        '목': '성장운',
+                        '화': '열정운',
+                        '토': '안정운',
+                        '금': '결단운',
+                        '수': '지혜운'
+                      };
+
+                      const elemName = elementNames[numberInfo.element] || numberInfo.element;
+                      const trait = elementTraits[numberInfo.element] || '특별운';
+                      
+                      // 사주 오행 분포에서 해당 원소 개수 확인
+                      const userElementCount = predictedNumbers.saju_analysis?.oheang?.[numberInfo.element] || 0;
+                      
+                      let reason;
+                      if (userElementCount >= 2) {
+                        reason = `${elemName} 기운이 강함`;
+                      } else if (userElementCount >= 1) {
+                        reason = `${elemName} 기운과 조화`;
+                      } else {
+                        reason = `${elemName} 기운 보완`;
+                      }
+                      
+                      const koreanExplanation = `${trait}의 ${numberInfo.number}번 - ${reason}`;
+
+                    return (
+                      <div key={numberInfo.number} className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                              {numberInfo.number}
+                            </div>
+                            <div>
+                              <span className="text-sm text-slate-500">
+                                {index + 1}위 추천
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-purple-600">
+                              적합도 {numberInfo.compatibility || 0}%
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {numberInfo.element || '미분류'} 원소
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          {koreanExplanation}
+                        </p>
+                        <div className="mt-2 flex justify-between text-xs text-slate-500">
+                          <span>출현빈도: {numberInfo.frequency || 0}회</span>
+                          <span>가중치: {(numberInfo.weight || 1).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* 액션 버튼들 */}
             <div className="space-y-3">
               <button
                 onClick={() => {
                   // 새로운 예측 생성
-                  handleSubmit({ preventDefault: () => {} });
+                  handleSubmit({ preventDefault: () => {} } as any);
                 }}
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50"
@@ -442,7 +627,6 @@ const MainPage = () => {
                   setShowForm(false);
                   setError(null);
                   setFormData({
-                    email: '',
                     birth_year: '',
                     birth_month: '',
                     birth_day: '',
@@ -508,7 +692,7 @@ const MainPage = () => {
           </div>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <div className="flex items-center justify-center space-x-3 mb-4">
-              {[7, 15, 23, 31, 39, 42].map((number, index) => (
+              {[7, 15, 23, 31, 39, 42].map((number: number, index: number) => (
                 <div
                   key={index}
                   className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg"
@@ -594,6 +778,26 @@ const MainPage = () => {
         </div>
       </footer>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onAuthSuccess={(userData) => {
+          // 로그인/회원가입 성공 후 예측 폼으로 자동 이동
+          setShowForm(true);
+        }}
+        onRegistrationSuccess={() => {
+          // 회원가입 완료 시 추가 처리
+          setRegistrationSuccess(true);
+        }}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfile
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
     </>
   );
 };

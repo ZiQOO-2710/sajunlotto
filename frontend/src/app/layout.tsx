@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { UserProvider } from '../contexts/UserContext'
 
 export const metadata: Metadata = {
   title: '사주로또 - 운명과 행운의 만남',
@@ -17,13 +18,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
+      <head></head>
       <body className="font-sans antialiased">
-        {children}
+        <UserProvider>
+          {children}
+        </UserProvider>
       </body>
     </html>
   )

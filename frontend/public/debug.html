@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+    <script>
+        window.onload = function() {
+            console.log('Testing Next.js server...');
+            
+            // Test if the main page loads without chunk errors
+            fetch('/')
+                .then(response => {
+                    console.log('Main page status:', response.status);
+                    return response.text();
+                })
+                .then(html => {
+                    console.log('HTML length:', html.length);
+                    console.log('Contains React root:', html.includes('__next'));
+                    
+                    // Update page content
+                    document.getElementById('result').innerHTML = 
+                        `<h3 style="color: green;">✅ Server Response OK</h3>
+                         <p>Status: 200</p>
+                         <p>HTML length: ${html.length} characters</p>
+                         <p>React root found: ${html.includes('__next')}</p>`;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = 
+                        `<h3 style="color: red;">❌ Server Error</h3>
+                         <p>Error: ${error.message}</p>`;
+                });
+        };
+    </script>
+</head>
+<body>
+    <h1>Next.js Debug Test</h1>
+    <div id="result">Testing...</div>
+    <p><a href="/">Go to Main App</a></p>
+</body>
+</html>

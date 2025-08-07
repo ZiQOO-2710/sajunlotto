@@ -79,3 +79,39 @@ class YoutubeRule(Base):
     keyword = Column(String, index=True)
     weight = Column(Float)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class SajuVideo(Base):
+    __tablename__ = "saju_videos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    video_id = Column(String, unique=True, index=True)  # YouTube 동영상 ID
+    title = Column(String, index=True)
+    description = Column(String)
+    channel_title = Column(String, index=True)
+    published_at = Column(String)
+    thumbnail_url = Column(String)
+    url = Column(String)
+    keyword = Column(String, index=True)  # 검색에 사용된 키워드
+    relevance_score = Column(Integer, default=0)
+    view_count = Column(Integer, default=0)
+    like_count = Column(Integer, default=0)
+    comment_count = Column(Integer, default=0)
+    duration = Column(String)
+    saju_terms = Column(JSON)  # 추출된 사주 용어들
+    fortune_keywords = Column(JSON)  # 운세 관련 키워드들
+    content_type = Column(String)  # 교육, 해석, 연간운세 등
+    target_audience = Column(String)  # 대상 청중
+    crawled_at = Column(DateTime, default=datetime.datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+
+class SajuVideoInteraction(Base):
+    __tablename__ = "saju_video_interactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    video_id = Column(Integer, ForeignKey("saju_videos.id"))
+    interaction_type = Column(String)  # 'view', 'like', 'share'
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("User")
+    video = relationship("SajuVideo")

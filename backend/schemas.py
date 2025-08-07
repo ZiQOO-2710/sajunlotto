@@ -5,6 +5,12 @@ import datetime
 class UserCreate(BaseModel):
     email: EmailStr
     name: str
+    password: Optional[str] = None
+    birth_year: Optional[int] = None
+    birth_month: Optional[int] = None
+    birth_day: Optional[int] = None
+    birth_hour: Optional[int] = None
+    gender: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -64,6 +70,10 @@ class NumberScore(BaseModel):
     number: int
     score: float
     element: str
+    compatibility: float
+    saju_explanation: str
+    frequency: int
+    weight: float
 
 class PredictionResponse(BaseModel):
     predicted_numbers: List[int]
