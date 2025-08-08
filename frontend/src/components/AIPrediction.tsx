@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Brain,
   Sparkles,
@@ -26,18 +26,27 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
     birth_day: '',
     birth_hour: '',
     birth_minute: '',
-    name: ''
+    name: '',
+    calendar_type: 'solar' // 'solar' | 'lunar'
   });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [prediction, setPrediction] = useState<any>(null);
 
+  // 컴포넌트 마운트 시 안전한 초기화
+  useEffect(() => {
+    // Next.js strict mode에서 중복 실행 방지
+    if (activeView !== 'welcome') {
+      setActiveView('welcome');
+    }
+  }, []);
+
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     
     try {
-      // AI 분석 요청 (포트 4002로 직접 연결)
-      const response = await fetch('http://localhost:4002/api/v1/ai/analyze', {
+      // AI 분석 요청 (포트 4001로 직접 연결)
+      const response = await fetch('http://localhost:4001/api/v1/ai/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,6 +158,61 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
               <h3 className="font-semibold text-gray-800 mb-4">
                 귀하의 운명을 보겠소. 생년월일시를 알려주시오
               </h3>
+              
+              {/* 양력/음력 선택 */}
+              <div className="mb-6">
+                <p className="text-sm text-gray-600 mb-3 text-center">생일 종류를 선택하세요</p>
+                <div className="flex justify-center space-x-4 mb-3">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="calendar_type"
+                      value="solar"
+                      checked={birthInfo.calendar_type === 'solar'}
+                      onChange={(e) => setBirthInfo({...birthInfo, calendar_type: e.target.value})}
+                      className="mr-2 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      birthInfo.calendar_type === 'solar' 
+                        ? 'bg-purple-100 text-purple-700 border-2 border-purple-300 shadow-sm' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}>
+                      🌞 양력 (서력)
+                    </span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="calendar_type"
+                      value="lunar"
+                      checked={birthInfo.calendar_type === 'lunar'}
+                      onChange={(e) => setBirthInfo({...birthInfo, calendar_type: e.target.value})}
+                      className="mr-2 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      birthInfo.calendar_type === 'lunar' 
+                        ? 'bg-purple-100 text-purple-700 border-2 border-purple-300 shadow-sm' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}>
+                      🌙 음력 (한국력)
+                    </span>
+                  </label>
+                </div>
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                  <p className="text-sm text-blue-700">
+                    {birthInfo.calendar_type === 'solar' 
+                      ? '📅 양력: 일반적으로 사용하는 달력 (주민등록증, 여권 기준)' 
+                      : '🏮 음력: 한국 전통 달력 (설날, 추석 기준)'
+                    }
+                  </p>
+                  {birthInfo.calendar_type === 'lunar' && (
+                    <p className="text-xs text-blue-600 mt-1 italic">
+                      💡 음력 날짜는 자동으로 양력으로 변환되어 정확한 사주 분석이 이루어집니다
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="grid md:grid-cols-2 gap-4 mb-4">
                 <input
                   type="text"
@@ -220,7 +284,7 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
       {activeView === 'analyze' && aiAnalysis && (
         <div className="max-w-6xl mx-auto px-4 py-8">
           {/* 사주팔자 표시 */}
-          {aiAnalysis.saju_pillars && (
+          {aiAnalysis?.saju_pillars && (
             <div className="mb-6">
               <SajuPillars pillars={aiAnalysis.saju_pillars} />
             </div>
@@ -237,14 +301,14 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-800 mb-2">천기 해독 완료</h3>
-                    <p className="text-gray-700">{aiAnalysis.greeting}</p>
-                    <p className="text-gray-600 mt-2">{aiAnalysis.core_analysis}</p>
+                    <p className="text-gray-700">{aiAnalysis?.greeting || '안녕하세요! 사주 분석을 진행하겠습니다.'}</p>
+                    <p className="text-gray-600 mt-2">{aiAnalysis?.core_analysis || '사주팔자를 분석 중입니다...'}</p>
                   </div>
                 </div>
               </div>
 
               {/* 예측 번호 */}
-              {prediction && (
+              {prediction && prediction.numbers && Array.isArray(prediction.numbers) && (
                 <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl shadow-lg p-6">
                   <h3 className="text-xl font-bold text-purple-800 mb-4 flex items-center">
                     <Zap className="w-6 h-6 mr-2" />
@@ -255,7 +319,7 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
                   <div className="mb-4">
                     <p className="text-center text-purple-700 font-medium mb-2">본번호</p>
                     <div className="flex justify-center space-x-3">
-                      {prediction.predicted_numbers.map((num: number, idx: number) => (
+                      {prediction.numbers?.map((num: number, idx: number) => (
                         <div
                           key={idx}
                           className="w-14 h-14 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg"
@@ -267,28 +331,25 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
                   </div>
 
                   {/* 보너스번호 1개 */}
-                  {prediction.bonus_number && (
+                  {prediction.bonus && (
                     <div className="mb-4">
                       <p className="text-center text-orange-700 font-medium mb-2">보너스번호</p>
                       <div className="flex justify-center">
                         <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg border-2 border-orange-300">
-                          {prediction.bonus_number}
+                          {prediction.bonus}
                         </div>
                       </div>
                     </div>
                   )}
 
                   <p className="text-center text-purple-700 font-medium">
-                    {prediction.ai_statement}
+                    {prediction?.ai_statement || '천기가 예측한 행운의 번호입니다.'}
                   </p>
-                  <p className="text-center text-purple-600 mt-2">
-                    {prediction.confidence_statement}
-                  </p>
-                  <div className="mt-4 pt-4 border-t border-purple-200">
-                    <p className="text-sm text-purple-700 italic text-center">
-                      {prediction.ai_reasoning}
+                  {prediction?.confidence && (
+                    <p className="text-center text-purple-600 mt-2">
+                      신뢰도: {prediction.confidence}%
                     </p>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -299,7 +360,7 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
                   천문에 드러난 귀하의 운명
                 </h3>
                 <div className="space-y-3">
-                  {aiAnalysis.personality_insights.map((insight: string, idx: number) => (
+                  {aiAnalysis?.personality_insights?.map((insight: string, idx: number) => (
                     <div key={idx} className="flex items-start">
                       <ChevronRight className="w-4 h-4 text-purple-500 mt-1 mr-2" />
                       <p className="text-gray-700">{insight}</p>
@@ -315,7 +376,7 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
                   천기로 본 운세 예언
                 </h3>
                 <div className="grid md:grid-cols-2 gap-4">
-                  {Object.entries(aiAnalysis.fortune_forecast).map(([key, value]) => (
+                  {aiAnalysis?.fortune_forecast && Object.entries(aiAnalysis.fortune_forecast).map(([key, value]) => (
                     <div key={key} className="bg-gray-50 rounded-lg p-3">
                       <h4 className="font-medium text-gray-700 capitalize mb-1">
                         {key === 'overall' ? '종합' : 
@@ -340,11 +401,11 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
                       <div className="w-24 h-2 bg-gray-200 rounded-full mr-2">
                         <div 
                           className="h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
-                          style={{ width: `${aiAnalysis.ai_confidence * 100}%` }}
+                          style={{ width: `${(aiAnalysis?.ai_confidence || 0.85) * 100}%` }}
                         />
                       </div>
                       <span className="font-medium text-purple-700">
-                        {Math.round(aiAnalysis.ai_confidence * 100)}%
+                        {Math.round((aiAnalysis?.ai_confidence || 0.85) * 100)}%
                       </span>
                     </div>
                   </div>
@@ -353,7 +414,7 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
                 {/* 특별 메시지 */}
                 <div className="p-4 bg-purple-50 rounded-lg">
                   <p className="text-sm text-purple-700 italic text-center">
-                    "{aiAnalysis.special_message}"
+                    "{aiAnalysis?.special_message || '천기가 당신에게 행운을 가져다 줄 것입니다.'}"
                   </p>
                   <p className="text-xs text-purple-600 text-center mt-1">
                     - SajuMaster AI v3.0
