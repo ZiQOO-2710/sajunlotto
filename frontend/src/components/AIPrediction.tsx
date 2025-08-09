@@ -209,53 +209,214 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
                 </div>
               </div>
 
-              {/* 입력 필드 - 모바일 최적화 */}
-              <div className="space-y-3 mb-4">
-                <input
-                  type="text"
-                  placeholder="이름"
-                  value={birthInfo.name}
-                  onChange={(e) => setBirthInfo({...birthInfo, name: e.target.value})}
-                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-base"
-                />
-                <div className="grid grid-cols-3 gap-2">
+              {/* 입력 필드 - 개선된 레이아웃 */}
+              <div className="space-y-4 mb-4">
+                {/* 이름 입력 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">이름</label>
                   <input
-                    type="number"
-                    placeholder="년"
-                    value={birthInfo.birth_year}
-                    onChange={(e) => setBirthInfo({...birthInfo, birth_year: e.target.value})}
-                    className="px-3 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-base"
-                  />
-                  <input
-                    type="number"
-                    placeholder="월"
-                    value={birthInfo.birth_month}
-                    onChange={(e) => setBirthInfo({...birthInfo, birth_month: e.target.value})}
-                    className="px-3 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-base"
-                  />
-                  <input
-                    type="number"
-                    placeholder="일"
-                    value={birthInfo.birth_day}
-                    onChange={(e) => setBirthInfo({...birthInfo, birth_day: e.target.value})}
-                    className="px-3 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-base"
+                    type="text"
+                    placeholder="이름을 입력하세요"
+                    value={birthInfo.name}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // 한글(완성형+조합형), 영문, 공백만 허용 (숫자 및 특수문자 제외)
+                      const filteredValue = value.replace(/[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z\s]/g, '');
+                      
+                      console.log('이름 입력:', value, '→ 필터링:', filteredValue);
+                      setBirthInfo({...birthInfo, name: filteredValue});
+                    }}
+                    maxLength={20}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 text-base focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    style={{ 
+                      color: '#000000 !important', 
+                      backgroundColor: '#ffffff !important',
+                      WebkitTextFillColor: '#000000',
+                      opacity: 1
+                    }}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    placeholder="시 (0-23)"
-                    value={birthInfo.birth_hour}
-                    onChange={(e) => setBirthInfo({...birthInfo, birth_hour: e.target.value})}
-                    className="px-3 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-base"
-                  />
-                  <input
-                    type="number"
-                    placeholder="분 (0-59)"
-                    value={birthInfo.birth_minute}
-                    onChange={(e) => setBirthInfo({...birthInfo, birth_minute: e.target.value})}
-                    className="px-3 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-base"
-                  />
+
+                {/* 생년월일 입력 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">생년월일</label>
+                  <div className="space-y-2">
+                    {/* 년도 */}
+                    <input
+                      type="text"
+                      placeholder="년 (예: 1990)"
+                      value={birthInfo.birth_year}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, ''); // 숫자만 허용
+                        
+                        // 년도는 4자리로 제한, 1900-2100 범위
+                        if (value.length <= 4) {
+                          if (value.length === 4) {
+                            const year = parseInt(value);
+                            if (year >= 1900 && year <= 2100) {
+                              console.log('년도 입력 (유효):', value);
+                              setBirthInfo({...birthInfo, birth_year: value});
+                            } else {
+                              console.log('년도 입력 (범위 외):', value);
+                            }
+                          } else {
+                            console.log('년도 입력:', value);
+                            setBirthInfo({...birthInfo, birth_year: value});
+                          }
+                        }
+                      }}
+                      maxLength={4}
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 text-base text-center focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      style={{ 
+                        color: '#000000 !important', 
+                        backgroundColor: '#ffffff !important',
+                        WebkitTextFillColor: '#000000',
+                        opacity: 1
+                      }}
+                    />
+                    {/* 월일 통합 */}
+                    <input
+                      type="text"
+                      placeholder="월일 (예: 1207 = 12월 7일)"
+                      value={
+                        birthInfo.birth_month && birthInfo.birth_day 
+                          ? `${birthInfo.birth_month.padStart(2, '0')}${birthInfo.birth_day.padStart(2, '0')}`
+                          : birthInfo.birth_month 
+                          ? birthInfo.birth_month
+                          : ''
+                      }
+                      onChange={(e) => {
+                        const rawValue = e.target.value;
+                        const value = rawValue.replace(/\D/g, ''); // 숫자만 허용
+                        console.log('월일 입력:', rawValue, '→ 숫자만:', value);
+                        
+                        if (value.length <= 4) {
+                          if (value.length >= 2) {
+                            const month = value.substring(0, 2);
+                            const day = value.length > 2 ? value.substring(2, 4) : '';
+                            
+                            // 월 유효성 검사 (01-12)
+                            const monthNum = parseInt(month);
+                            if (monthNum >= 1 && monthNum <= 12) {
+                              // 일 유효성 검사 (01-31)
+                              if (day) {
+                                const dayNum = parseInt(day);
+                                if (dayNum >= 1 && dayNum <= 31) {
+                                  console.log('월일 파싱 (유효):', { month, day });
+                                  setBirthInfo({
+                                    ...birthInfo, 
+                                    birth_month: month,
+                                    birth_day: day
+                                  });
+                                }
+                              } else {
+                                setBirthInfo({
+                                  ...birthInfo, 
+                                  birth_month: month,
+                                  birth_day: ''
+                                });
+                              }
+                            }
+                          } else if (value.length === 1) {
+                            setBirthInfo({
+                              ...birthInfo,
+                              birth_month: value,
+                              birth_day: ''
+                            });
+                          } else {
+                            setBirthInfo({
+                              ...birthInfo,
+                              birth_month: '',
+                              birth_day: ''
+                            });
+                          }
+                        }
+                      }}
+                      maxLength={4}
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 text-base text-center focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      style={{ 
+                        color: '#000000 !important', 
+                        backgroundColor: '#ffffff !important',
+                        WebkitTextFillColor: '#000000',
+                        opacity: 1
+                      }}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 예시: 12월 7일 → 1207, 1월 15일 → 0115
+                    </p>
+                  </div>
+                </div>
+
+                {/* 시분 입력 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">태어난 시간</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="시 (0-23)"
+                      value={birthInfo.birth_hour}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, ''); // 숫자만 허용
+                        
+                        // 시간은 0-23 범위, 2자리 제한
+                        if (value.length <= 2) {
+                          if (value.length >= 1) {
+                            const hour = parseInt(value);
+                            if (hour >= 0 && hour <= 23) {
+                              console.log('시간 입력 (유효):', value);
+                              setBirthInfo({...birthInfo, birth_hour: value});
+                            } else {
+                              console.log('시간 입력 (범위 외):', value);
+                            }
+                          } else {
+                            setBirthInfo({...birthInfo, birth_hour: value});
+                          }
+                        }
+                      }}
+                      maxLength={2}
+                      className="px-3 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 text-base text-center focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      style={{ 
+                        color: '#000000 !important', 
+                        backgroundColor: '#ffffff !important',
+                        WebkitTextFillColor: '#000000',
+                        opacity: 1
+                      }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="분 (0-59)"
+                      value={birthInfo.birth_minute}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, ''); // 숫자만 허용
+                        
+                        // 분은 0-59 범위, 2자리 제한
+                        if (value.length <= 2) {
+                          if (value.length >= 1) {
+                            const minute = parseInt(value);
+                            if (minute >= 0 && minute <= 59) {
+                              console.log('분 입력 (유효):', value);
+                              setBirthInfo({...birthInfo, birth_minute: value});
+                            } else {
+                              console.log('분 입력 (범위 외):', value);
+                            }
+                          } else {
+                            setBirthInfo({...birthInfo, birth_minute: value});
+                          }
+                        }
+                      }}
+                      maxLength={2}
+                      className="px-3 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 text-base text-center focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      style={{ 
+                        color: '#000000 !important', 
+                        backgroundColor: '#ffffff !important',
+                        WebkitTextFillColor: '#000000',
+                        opacity: 1
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    ⏰ 정확한 시간을 모르시면 12시 0분으로 입력하세요
+                  </p>
                 </div>
               </div>
               
@@ -281,119 +442,41 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
       {/* AI 분석 결과 - 모바일 최적화 */}
       {activeView === 'analyze' && aiAnalysis && (
         <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 px-4 py-4">
-          {/* 사주 원국 표시 - 모바일 최적화 */}
+          {/* 사용자 정보 표시 */}
           <div className="mb-4">
-            <div className="bg-white rounded-2xl shadow-xl p-4 border border-purple-100">
-              <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">
-                🔮 사주 원국 (四柱原局)
-              </h3>
-              
-              {/* 사주팔자 표 - 모바일 최적화 */}
-              <div className="mb-4">
-                {/* 모바일 친화적인 컴팩트 테이블 */}
-                <div className="grid grid-cols-4 gap-2 text-center">
-                  {/* 헤더 */}
-                  <div className="text-xs font-semibold text-gray-700 pb-2">년주<br/><span className="text-gray-500">(年柱)</span></div>
-                  <div className="text-xs font-semibold text-gray-700 pb-2">월주<br/><span className="text-gray-500">(月柱)</span></div>
-                  <div className="text-xs font-semibold text-gray-700 pb-2">일주<br/><span className="text-gray-500">(日柱)</span></div>
-                  <div className="text-xs font-semibold text-gray-700 pb-2">시주<br/><span className="text-gray-500">(時柱)</span></div>
-                  
-                  {/* 천간 라벨 */}
-                  <div className="col-span-4 text-xs text-gray-500 font-medium py-1 border-t border-gray-200">천간 (天干)</div>
-                  
-                  {/* 천간 */}
-                  <div className="pb-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg mb-1">
-                      {aiAnalysis?.saju_chart?.year_pillar?.gan || '경'}
-                    </div>
-                    <div className="text-xs text-gray-600">{aiAnalysis?.saju_chart?.year_pillar?.element || '금'}</div>
-                  </div>
-                  <div className="pb-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg mb-1">
-                      {aiAnalysis?.saju_chart?.month_pillar?.gan || '신'}
-                    </div>
-                    <div className="text-xs text-gray-600">{aiAnalysis?.saju_chart?.month_pillar?.element || '금'}</div>
-                  </div>
-                  <div className="pb-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-green-400 to-teal-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg mb-1">
-                      {aiAnalysis?.saju_chart?.day_pillar?.gan || '무'}
-                    </div>
-                    <div className="text-xs text-gray-600">{aiAnalysis?.saju_chart?.day_pillar?.element || '토'}</div>
-                  </div>
-                  <div className="pb-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-red-400 to-pink-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg mb-1">
-                      {aiAnalysis?.saju_chart?.hour_pillar?.gan || '정'}
-                    </div>
-                    <div className="text-xs text-gray-600">{aiAnalysis?.saju_chart?.hour_pillar?.element || '화'}</div>
-                  </div>
-                  
-                  {/* 지지 라벨 */}
-                  <div className="col-span-4 text-xs text-gray-500 font-medium py-1 border-t border-gray-200">지지 (地支)</div>
-                  
-                  {/* 지지 */}
-                  <div>
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg mb-1">
-                      {aiAnalysis?.saju_chart?.year_pillar?.ji || '오'}
-                    </div>
-                    <div className="text-xs text-gray-600">{aiAnalysis?.saju_chart?.year_pillar?.element || '금'}</div>
-                  </div>
-                  <div>
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-indigo-400 to-blue-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg mb-1">
-                      {aiAnalysis?.saju_chart?.month_pillar?.ji || '사'}
-                    </div>
-                    <div className="text-xs text-gray-600">{aiAnalysis?.saju_chart?.month_pillar?.element || '금'}</div>
-                  </div>
-                  <div>
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg mb-1">
-                      {aiAnalysis?.saju_chart?.day_pillar?.ji || '인'}
-                    </div>
-                    <div className="text-xs text-gray-600">{aiAnalysis?.saju_chart?.day_pillar?.element || '토'}</div>
-                  </div>
-                  <div>
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-rose-400 to-red-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg mb-1">
-                      {aiAnalysis?.saju_chart?.hour_pillar?.ji || '사'}
-                    </div>
-                    <div className="text-xs text-gray-600">{aiAnalysis?.saju_chart?.hour_pillar?.element || '화'}</div>
-                  </div>
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <h3 className="text-lg font-bold text-gray-800 mb-3 text-center">사주 정보</h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-purple-50 rounded-lg p-3">
+                  <span className="font-medium text-purple-700">성명:</span>
+                  <span className="ml-2 text-gray-800">{birthInfo.name || '미입력'}</span>
                 </div>
-              </div>
-
-              {/* 오행 분석 - 모바일 최적화 */}
-              <div className="border-t pt-3">
-                <h4 className="text-base font-semibold text-gray-800 mb-3 text-center">오행 분포 (五行分布)</h4>
-                <div className="grid grid-cols-5 gap-2 mb-3">
-                  {Object.entries(aiAnalysis?.saju_chart?.five_elements || {'목': 15, '화': 25, '토': 20, '금': 30, '수': 10}).map(([element, percentage]) => (
-                    <div key={element} className="text-center">
-                      <div className="text-lg mb-1">
-                        {element === '목' && '🌳'}
-                        {element === '화' && '🔥'}  
-                        {element === '토' && '⛰️'}
-                        {element === '금' && '⚔️'}
-                        {element === '수' && '💧'}
-                      </div>
-                      <div className="text-xs font-semibold">{element}</div>
-                      <div className="text-xs text-gray-600">{percentage}%</div>
-                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                        <div 
-                          className="bg-gradient-to-r from-purple-500 to-blue-500 h-1.5 rounded-full" 
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <span className="font-medium text-blue-700">양력/음력:</span>
+                  <span className="ml-2 text-gray-800">{birthInfo.calendar_type === 'solar' ? '🌞 양력' : '🌙 음력'}</span>
                 </div>
-                
-                <div className="text-center mt-3">
-                  <div className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg p-3 mb-2">
-                    <div className="text-xs space-y-1">
-                      <div>🌟 <strong>주도 오행:</strong> {aiAnalysis?.saju_chart?.dominant_element || '금'}</div>
-                      <div><strong>행운 오행:</strong> {aiAnalysis?.saju_chart?.lucky_elements?.join(', ') || '금, 토'}</div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-600">{aiAnalysis?.saju_chart?.chart_summary || '금(金)의 기운이 강한 사주로 의지가 굳고 결단력이 뛰어남'}</p>
+                <div className="bg-green-50 rounded-lg p-3 col-span-2">
+                  <span className="font-medium text-green-700">생년월일:</span>
+                  <span className="ml-2 text-gray-800">
+                    {birthInfo.birth_year}년 {birthInfo.birth_month}월 {birthInfo.birth_day}일
+                  </span>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-3 col-span-2">
+                  <span className="font-medium text-orange-700">태어난 시간:</span>
+                  <span className="ml-2 text-gray-800">
+                    {birthInfo.birth_hour}시 {birthInfo.birth_minute}분
+                  </span>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* 사주 원국 표시 - 모바일 최적화 */}
+          <div className="mb-4">
+            {/* SajuPillars 컴포넌트 사용 */}
+            {aiAnalysis?.saju_chart && (
+              <SajuPillars pillars={aiAnalysis.saju_chart} />
+            )}
           </div>
 
           
@@ -454,19 +537,67 @@ const AIPrediction = ({ onPredictionGenerated }: AIPredictionProps) => {
                 </div>
               )}
 
-              {/* 성격 통찰 - 모바일 최적화 */}
+              {/* 사주 풀이 - 모바일 최적화 */}
               <div className="bg-white rounded-xl shadow-lg p-4">
                 <h3 className="text-base font-semibold text-gray-800 mb-3 flex items-center">
-                  <Star className="w-4 h-4 mr-2 text-yellow-500" />
-                  천문에 드러난 귀하의 운명
+                  <Shield className="w-4 h-4 mr-2 text-purple-500" />
+                  사주 팔자 해석
                 </h3>
-                <div className="space-y-2">
-                  {aiAnalysis?.personality_insights?.map((insight: string, idx: number) => (
-                    <div key={idx} className="flex items-start">
-                      <ChevronRight className="w-3 h-3 text-purple-500 mt-1 mr-2 flex-shrink-0" />
-                      <p className="text-sm text-gray-700">{insight}</p>
-                    </div>
-                  ))}
+                <div className="space-y-3">
+                  {/* 년주 해석 */}
+                  <div className="bg-purple-50 rounded-lg p-3">
+                    <h4 className="text-sm font-semibold text-purple-700 mb-2">🏛️ 년주 (조상과 뿌리)</h4>
+                    <p className="text-xs text-gray-700">
+                      {aiAnalysis?.saju_chart?.year && (
+                        `${aiAnalysis.saju_chart.year.gan_hanja}(${aiAnalysis.saju_chart.year.gan}) ${aiAnalysis.saju_chart.year.ji_hanja}(${aiAnalysis.saju_chart.year.ji}) - 
+                        ${aiAnalysis.saju_chart.year.gan_element}(${aiAnalysis.saju_chart.year.gan_yinyang})과 ${aiAnalysis.saju_chart.year.ji_element}(${aiAnalysis.saju_chart.year.ji_yinyang})의 조화로 조상의 기운과 태생적 성향을 나타냅니다.`
+                      )}
+                    </p>
+                  </div>
+
+                  {/* 월주 해석 */}
+                  <div className="bg-blue-50 rounded-lg p-3">
+                    <h4 className="text-sm font-semibold text-blue-700 mb-2">👥 월주 (사회와 직업)</h4>
+                    <p className="text-xs text-gray-700">
+                      {aiAnalysis?.saju_chart?.month && (
+                        `${aiAnalysis.saju_chart.month.gan_hanja}(${aiAnalysis.saju_chart.month.gan}) ${aiAnalysis.saju_chart.month.ji_hanja}(${aiAnalysis.saju_chart.month.ji}) - 
+                        ${aiAnalysis.saju_chart.month.gan_element}과 ${aiAnalysis.saju_chart.month.ji_element}의 기운으로 사회적 관계와 직업 운세를 주관합니다.`
+                      )}
+                    </p>
+                  </div>
+
+                  {/* 일주 해석 */}
+                  <div className="bg-green-50 rounded-lg p-3">
+                    <h4 className="text-sm font-semibold text-green-700 mb-2">💖 일주 (자아와 배우자)</h4>
+                    <p className="text-xs text-gray-700">
+                      {aiAnalysis?.saju_chart?.day && (
+                        `${aiAnalysis.saju_chart.day.gan_hanja}(${aiAnalysis.saju_chart.day.gan}) ${aiAnalysis.saju_chart.day.ji_hanja}(${aiAnalysis.saju_chart.day.ji}) - 
+                        본인의 핵심 성격과 배우자 궁을 나타내며, ${aiAnalysis.saju_chart.day.gan_element}과 ${aiAnalysis.saju_chart.day.ji_element}의 균형이 중요합니다.`
+                      )}
+                    </p>
+                  </div>
+
+                  {/* 시주 해석 */}
+                  <div className="bg-orange-50 rounded-lg p-3">
+                    <h4 className="text-sm font-semibold text-orange-700 mb-2">👶 시주 (자녀와 말년)</h4>
+                    <p className="text-xs text-gray-700">
+                      {aiAnalysis?.saju_chart?.hour && (
+                        `${aiAnalysis.saju_chart.hour.gan_hanja}(${aiAnalysis.saju_chart.hour.gan}) ${aiAnalysis.saju_chart.hour.ji_hanja}(${aiAnalysis.saju_chart.hour.ji}) - 
+                        ${aiAnalysis.saju_chart.hour.gan_element}과 ${aiAnalysis.saju_chart.hour.ji_element}의 기운으로 자녀운과 말년의 복을 예측할 수 있습니다.`
+                      )}
+                    </p>
+                  </div>
+
+                  {/* 오행 균형 해석 */}
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">⚖️ 오행 균형</h4>
+                    <p className="text-xs text-gray-700">
+                      {aiAnalysis?.saju_chart?.five_elements && (
+                        `목 ${aiAnalysis.saju_chart.five_elements.목}%, 화 ${aiAnalysis.saju_chart.five_elements.화}%, 토 ${aiAnalysis.saju_chart.five_elements.토}%, 금 ${aiAnalysis.saju_chart.five_elements.금}%, 수 ${aiAnalysis.saju_chart.five_elements.수}%의 분포로 
+                        ${aiAnalysis.saju_chart.dominant_element}의 기운이 강하여 ${aiAnalysis.saju_chart.chart_summary || '균형잡힌 성향을 보입니다'}.`
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
 

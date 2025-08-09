@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { UserProvider } from '../contexts/UserContext'
 
@@ -7,7 +7,12 @@ export const metadata: Metadata = {
   description: '전통 사주학과 AI가 만나 당신의 운세에 맞는 개인 맞춤형 로또 번호를 예측합니다.',
   keywords: '사주, 로또, 예측, 운세, 번호추천, AI',
   authors: [{ name: 'SajuLotto Team' }],
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
   themeColor: '#6366f1',
 }
 

@@ -19,6 +19,13 @@ interface SajuPillarsProps {
     month: SajuPillar;
     day: SajuPillar;
     hour: SajuPillar;
+    five_elements?: {
+      목: number;
+      화: number;
+      토: number;
+      금: number;
+      수: number;
+    };
   };
 }
 
@@ -28,26 +35,21 @@ const SajuPillars = ({ pillars }: SajuPillarsProps) => {
   // 디버깅용 로그
   console.log('사주팔자 데이터:', pillars);
 
-  // 오행별 색상 정의 (음양 텍스트를 위해 조정)
+  // 오행별 배경색 정의 (사용자 요구사항에 맞춰 조정)
   const getElementColor = (element: string) => {
     switch (element) {
-      case '목': return '#7CB342'; // 좀 더 어두운 녹색
-      case '화': return '#E53E3E'; // 좀 더 어두운 빨간색
-      case '토': return '#D69E2E'; // 좀 더 어두운 노란색
-      case '금': return '#A0AEC0'; // 좀 더 어두운 회색
-      case '수': return '#3182CE'; // 좀 더 어두운 파란색
-      default: return '#E6E9ED';
+      case '목': return '#22C55E'; // 녹색 (Green-500)
+      case '화': return '#EF4444'; // 빨간색 (Red-500) 
+      case '토': return '#EAB308'; // 노란색 (Yellow-500)
+      case '금': return '#D1D5DB'; // 회백색 (Gray-300)
+      case '수': return '#3B82F6'; // 파란색 (Blue-500)
+      default: return '#E5E7EB';
     }
   };
 
-  // 텍스트 색상 결정 (음양에 따라)
-  const getTextColorByYinyang = (yinyang: string, element: string) => {
-    // 모든 오행에 대해 동일한 규칙 적용
-    if (yinyang === '양') {
-      return '#FFFFFF'; // 양은 흰색 텍스트
-    } else {
-      return '#1A1A1A'; // 음은 검정색 텍스트  
-    }
+  // 음양에 따른 텍스트 색상 결정
+  const getTextColorByYinyang = (yinyang: string) => {
+    return yinyang === '음' ? '#000000' : '#FFFFFF'; // 음은 검은색, 양은 흰색
   };
 
   // 오행 아이콘 이모지
@@ -62,14 +64,22 @@ const SajuPillars = ({ pillars }: SajuPillarsProps) => {
     }
   };
 
+  // 오행별 퍼센트 정보 가져오기
+  const getElementPercentage = (element: string) => {
+    if (!pillars.five_elements) return '';
+    const percentage = pillars.five_elements[element as keyof typeof pillars.five_elements];
+    return percentage ? `${percentage}%` : '';
+  };
+
   // 각 칸 렌더링 함수
   const renderCell = (hanja: string, korean: string, element: string, yinyang: string) => {
     const bgColor = getElementColor(element);
-    const textColor = getTextColorByYinyang(yinyang, element);
+    const textColor = getTextColorByYinyang(yinyang);
     const icon = getElementIcon(element);
+    const percentage = getElementPercentage(element);
     
     // 디버깅용 로그
-    console.log(`${hanja}(${korean}): 오행=${element}, 음양=${yinyang}, 색상=${textColor}`);
+    console.log(`${hanja}(${korean}): 오행=${element}, 음양=${yinyang}, 색상=${textColor}, 퍼센트=${percentage}`);
     
     return (
       <div 
@@ -78,7 +88,10 @@ const SajuPillars = ({ pillars }: SajuPillarsProps) => {
       >
         <div className="text-3xl font-bold mb-1">{hanja}</div>
         <div className="text-sm">{korean}</div>
-        <div className="absolute bottom-1 right-1 text-xs opacity-70">{icon}</div>
+        {percentage && (
+          <div className="text-xs opacity-90 mt-1">{percentage}</div>
+        )}
+        <div className="absolute bottom-1 right-1 text-lg opacity-80">{icon}</div>
       </div>
     );
   };
@@ -152,48 +165,6 @@ const SajuPillars = ({ pillars }: SajuPillarsProps) => {
         </table>
       </div>
 
-      {/* 범례 */}
-      <div className="mt-6 pt-4 border-t border-gray-200">
-        {/* 음양 범례 - 텍스트 색상으로 표시 */}
-        <div className="flex justify-center items-center space-x-6 mb-3">
-          <div className="flex items-center">
-            <div className="w-6 h-6 rounded bg-gray-600 mr-2 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">양</span>
-            </div>
-            <span className="text-sm text-gray-600">양(陽) - 흰색 텍스트</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-6 h-6 rounded bg-gray-300 mr-2 flex items-center justify-center">
-              <span className="text-black text-xs font-bold">음</span>
-            </div>
-            <span className="text-sm text-gray-600">음(陰) - 검정색 텍스트</span>
-          </div>
-        </div>
-        
-        {/* 오행 범례 */}
-        <div className="flex justify-center flex-wrap gap-4 text-sm">
-          <div className="flex items-center">
-            <div className="w-4 h-4 rounded mr-1" style={{ backgroundColor: '#7CB342' }}></div>
-            <span className="text-gray-600">🌳 목(木)</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 rounded mr-1" style={{ backgroundColor: '#E53E3E' }}></div>
-            <span className="text-gray-600">🔥 화(火)</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 rounded mr-1" style={{ backgroundColor: '#D69E2E' }}></div>
-            <span className="text-gray-600">⛰️ 토(土)</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 rounded mr-1" style={{ backgroundColor: '#A0AEC0' }}></div>
-            <span className="text-gray-600">⚔️ 금(金)</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 rounded mr-1" style={{ backgroundColor: '#3182CE' }}></div>
-            <span className="text-gray-600">💧 수(水)</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

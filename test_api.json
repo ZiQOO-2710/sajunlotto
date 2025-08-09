@@ -1,0 +1,9 @@
+{
+  "name": "테스트",
+  "birth_year": "1990",
+  "birth_month": "12", 
+  "birth_day": "07",
+  "birth_hour": "14",
+  "birth_minute": "30",
+  "calendar_type": "solar"
+}
