@@ -338,6 +338,118 @@ class YouTubeService:
         
         conn.close()
         return results
+    
+    async def analyze_and_learn(self, text: str) -> Dict[str, Any]:
+        """텍스트 분석 및 학습"""
+        try:
+            # 사주 용어 분석
+            saju_analysis = self._analyze_saju_terms(text)
+            
+            # 의미 있는 내용이 있는지 확인
+            if saju_analysis['total_terms'] < 2:
+                return {'success': False, 'reason': 'insufficient_saju_content'}
+            
+            # 문장 단위로 분할
+            sentences = self._split_sentences(text)
+            learned_count = 0
+            
+            conn = sqlite3.connect(self.knowledge_db_path)
+            cursor = conn.cursor()
+            
+            for sentence in sentences:
+                if len(sentence.strip()) < 20:  # 너무 짧은 문장 제외
+                    continue
+                
+                # 사주 용어 분석
+                sentence_terms = self._analyze_saju_terms(sentence)
+                if sentence_terms['total_terms'] == 0:
+                    continue
+                
+                # 문장 유형 분류
+                sentence_type = self._classify_sentence(sentence)
+                
+                # 신뢰도 계산
+                confidence = self._calculate_sentence_confidence(sentence, sentence_terms)
+                
+                # 데이터베이스에 저장
+                cursor.execute("""
+                    INSERT INTO saju_knowledge 
+                    (video_id, video_title, content, saju_terms, 
+                     sentence_type, confidence, source)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    'background_learning',
+                    'YouTube 백그라운드 학습',
+                    sentence.strip(),
+                    json.dumps(sentence_terms['terms']),
+                    sentence_type,
+                    confidence,
+                    'background'
+                ))
+                
+                learned_count += 1
+            
+            conn.commit()
+            conn.close()
+            
+            return {
+                'success': True,
+                'learned_sentences': learned_count,
+                'total_terms': saju_analysis['total_terms']
+            }
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def _split_sentences(self, text: str) -> List[str]:
+        """텍스트를 문장 단위로 분할"""
+        import re
+        sentences = re.split(r'[.!?。]', text)
+        return [s.strip() for s in sentences if len(s.strip()) > 10]
+    
+    def _analyze_saju_terms(self, text: str) -> Dict[str, Any]:
+        """사주 용어 분석"""
+        found_terms = {}
+        total_count = 0
+        
+        for category, terms in self.saju_terms.items():
+            found = [term for term in terms if term in text]
+            if found:
+                found_terms[category] = found
+                total_count += len(found)
+        
+        return {
+            'terms': found_terms,
+            'total_terms': total_count
+        }
+    
+    def _classify_sentence(self, sentence: str) -> str:
+        """문장 유형 분류"""
+        sentence_lower = sentence.lower()
+        
+        for sentence_type, keywords in self.sentence_types.items():
+            if any(keyword in sentence_lower for keyword in keywords):
+                return sentence_type
+        
+        return 'general'
+    
+    def _calculate_sentence_confidence(self, sentence: str, term_analysis: Dict) -> float:
+        """문장 신뢰도 계산"""
+        confidence = 0.3  # 기본 신뢰도
+        
+        # 사주 용어 개수에 따른 가중치
+        term_count = term_analysis.get('total_terms', 0)
+        confidence += min(term_count * 0.1, 0.4)
+        
+        # 문장 길이에 따른 가중치
+        length_bonus = min(len(sentence) / 200, 0.2)
+        confidence += length_bonus
+        
+        # 구체적 설명 포함 여부
+        if any(word in sentence for word in ['따라서', '그러므로', '예를 들어']):
+            confidence += 0.1
+        
+        return min(confidence, 1.0)
 
     async def get_knowledge_summary(self) -> Dict[str, Any]:
         """학습된 지식 요약"""
@@ -375,11 +487,12 @@ class YouTubeService:
         }
 
     async def get_personalized_knowledge(self, birth_info: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """개인 맞춤형 사주 지식 조회"""
+        """개인 맞춤형 사주 지식 조회 - 크롤링된 YouTube 데이터 활용"""
         
         # 생년월일 기반으로 관련 키워드 생성
         birth_year = birth_info.get('birth_year', 2000)
         birth_month = birth_info.get('birth_month', 1)
+        birth_day = birth_info.get('birth_day', 1)
         
         # 간단한 개인화 로직 (실제로는 더 정교해야 함)
         keywords = []
@@ -392,6 +505,14 @@ class YouTubeService:
             keywords.append(self.saju_terms['천간'][year_gan_index])
         if year_ji_index < len(self.saju_terms['지지']):
             keywords.append(self.saju_terms['지지'][year_ji_index])
+        
+        # 일주 계산 및 추가
+        천간 = self.saju_terms['천간']
+        지지 = self.saju_terms['지지']
+        day_gan_index = (birth_year + birth_month + birth_day) % 10
+        day_ji_index = (birth_year + birth_month + birth_day) % 12
+        일주 = f"{천간[day_gan_index]}{지지[day_ji_index]} 일주"
+        keywords.append(일주)
         
         # 계절 기반 오행
         season_elements = {

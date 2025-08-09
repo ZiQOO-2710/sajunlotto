@@ -35,9 +35,20 @@ async def analyze_saju(
     """
     AI 사주 분석
     사용자에게는 AI가 직접 분석하는 것처럼 보임
+    calendar_type: 'solar' (양력) 또는 'lunar' (음력)
     """
     try:
-        # AI 분석 수행
+        # 필수 필드 검증
+        required_fields = ['birth_year', 'birth_month', 'birth_day']
+        for field in required_fields:
+            if field not in birth_info:
+                raise HTTPException(status_code=400, detail=f"{field}가 필요합니다.")
+        
+        # 달력 타입 기본값 설정
+        if 'calendar_type' not in birth_info:
+            birth_info['calendar_type'] = 'solar'
+        
+        # AI 분석 수행 (음력 변환 포함)
         analysis = await ai.analyze_saju(birth_info)
         
         # 예측 번호 생성
@@ -47,6 +58,11 @@ async def analyze_saju(
             "success": True,
             "analysis": analysis,
             "prediction": prediction,
+            "calendar_info": {
+                "input_calendar": birth_info.get('calendar_type', 'solar'),
+                "lunar_converted": birth_info.get('calendar_type') == 'lunar',
+                "ai_calendar_info": analysis.get('calendar_info')
+            },
             "timestamp": datetime.now().isoformat()
         }
         
@@ -54,7 +70,7 @@ async def analyze_saju(
         # 오류도 AI 스타일로
         raise HTTPException(
             status_code=500,
-            detail=f"AI 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+            detail=f"천기를 읽는 중 일시적인 장애가 발생했습니다. 잠시 후 다시 시도해주세요."
         )
 
 @router.post("/predict")

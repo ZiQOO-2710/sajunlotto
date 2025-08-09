@@ -202,11 +202,11 @@ const MainPage = () => {
             <div className="max-w-md mx-auto">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-slate-800">최근 당첨번호</h3>
-                <span className="text-sm text-slate-500">1298회</span>
+                <span className="text-sm text-slate-500">1132회</span>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <div className="flex items-center justify-center space-x-3 mb-4">
-                  {[7, 15, 23, 31, 39, 42].map((number, index) => (
+                  {[21, 22, 24, 33, 36, 37].map((number, index) => (
                     <div
                       key={index}
                       className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg"
@@ -216,12 +216,12 @@ const MainPage = () => {
                   ))}
                   <div className="w-px h-6 bg-slate-300 mx-2"></div>
                   <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
-                    18
+                    10
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-slate-600">추첨일: 2024.01.13 (토)</p>
-                  <p className="text-xs text-slate-500 mt-1">1등 당첨금: 22억 3,456만원</p>
+                  <p className="text-sm text-slate-600">추첨일: 2025.08.03 (토)</p>
+                  <p className="text-xs text-slate-500 mt-1">1등 당첨금: 25억 4,123만원</p>
                 </div>
               </div>
             </div>

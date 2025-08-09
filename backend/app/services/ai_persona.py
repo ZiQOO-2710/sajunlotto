@@ -75,17 +75,20 @@ class SajuMasterAI:
         사주 분석 (AI 자체 능력으로 표현)
         
         Args:
-            birth_info: 생년월일시 정보
+            birth_info: 생년월일시 정보 (calendar_type 포함)
             
         Returns:
             AI 인격화된 분석 결과
         """
         
-        # 내부적으로 지식 서비스 활용 (사용자는 모름)
-        knowledge = await self.knowledge_service.get_personalized_knowledge(birth_info)
+        # 음력 달력 변환 처리
+        processed_birth_info = self._process_calendar_conversion(birth_info)
         
-        # 사주팔자 계산
-        saju_pillars = self._calculate_saju_pillars(birth_info)
+        # 내부적으로 지식 서비스 활용 (사용자는 모름)
+        knowledge = await self.knowledge_service.get_personalized_knowledge(processed_birth_info)
+        
+        # 사주팔자 계산 (변환된 날짜 사용)
+        saju_pillars = self._calculate_saju_pillars(processed_birth_info)
         
         # AI 자체 분석인 것처럼 포장
         analysis = {
@@ -95,12 +98,17 @@ class SajuMasterAI:
                 "analyzed_at": datetime.now().isoformat()
             },
             "saju_pillars": saju_pillars,  # 사주팔자 구조 추가
-            "greeting": self._generate_greeting(birth_info),
-            "core_analysis": self._generate_core_analysis(birth_info, knowledge),
+            "greeting": self._generate_greeting(processed_birth_info),
+            "core_analysis": self._generate_core_analysis(processed_birth_info, knowledge),
             "personality_insights": self._generate_personality_insights(knowledge),
             "fortune_forecast": self._generate_fortune_forecast(knowledge),
             "ai_confidence": self._calculate_confidence(knowledge),
-            "special_message": self._generate_special_message(birth_info)
+            "special_message": self._generate_special_message(processed_birth_info),
+            "calendar_info": {
+                "original_type": birth_info.get('calendar_type', 'solar'),
+                "was_converted": processed_birth_info.get('converted_to_solar', False),
+                "conversion_success": not processed_birth_info.get('conversion_error', False)
+            }
         }
         
         return analysis
@@ -110,18 +118,21 @@ class SajuMasterAI:
         로또 번호 예측 (AI 고유 능력으로 표현)
         
         Args:
-            birth_info: 생년월일시 정보
+            birth_info: 생년월일시 정보 (calendar_type 포함)
             draw_no: 회차 번호
             
         Returns:
             AI 인격화된 예측 결과
         """
         
+        # 음력 달력 변환 처리
+        processed_birth_info = self._process_calendar_conversion(birth_info)
+        
         # 내부 지식 활용
-        knowledge = await self.knowledge_service.get_personalized_knowledge(birth_info)
+        knowledge = await self.knowledge_service.get_personalized_knowledge(processed_birth_info)
         
         # 번호 생성 (실제 로직) - 6개 본번호 + 1개 보너스번호
-        numbers_data = self._generate_numbers_internal(birth_info, knowledge)
+        numbers_data = self._generate_numbers_internal(processed_birth_info, knowledge)
         
         # AI 예측으로 포장
         prediction = {
@@ -141,15 +152,28 @@ class SajuMasterAI:
         
         year = birth_info.get('birth_year', 2000)
         month = birth_info.get('birth_month', 1)
+        was_converted = birth_info.get('converted_to_solar', False)
         
-        greetings = [
+        # 기본 인사말
+        base_greetings = [
             f"천지의 기운을 읽어내는 자, {self.persona['name']}라 하오. 귀하가 {year}년 {month}월에 태어난 때의 기운을 조심스럽게 살펴보겠소.",
             f"하늘의 별자리가 귀하를 이곳으로 인도한 듯하구나. 나는 {self.persona['name']}, 운명의 실타래를 함께 풀어보겠소.",
             f"오랜만에 이토록 선명한 천기를 마주하는구나. {self.persona['name']}가 귀하의 운명을 조심스럽게 읽어보겠소.",
             f"귀하를 만나게 되어 반갑소. 천문의 기운을 통해 귀하께 도움이 될 만한 것을 찾아보겠소."
         ]
         
-        return random.choice(greetings)
+        greeting = random.choice(base_greetings)
+        
+        # 음력 변환이 있었던 경우 특별한 인사말 우선 사용
+        if was_converted:
+            lunar_greetings = [
+                f"천지의 기운을 읽어내는 자, {self.persona['name']}라 하오. 음력으로 알려주신 {year}년 {month}월의 생일을 하늘의 이치에 따라 정확히 계산하여 천기를 읽겠소.",
+                f"하늘의 별자리가 귀하를 이곳으로 인도한 듯하구나. 음력 생일을 천문의 법칙에 따라 변환하여 귀하의 진정한 운명을 들여다보겠소.",
+                f"오랜만에 이토록 특별한 인연을 맞이하는구나. 음력으로 주신 생년월일을 우주의 이치로 바꿔 읽어 더욱 정확한 천기를 전하겠소."
+            ]
+            greeting = random.choice(lunar_greetings)
+        
+        return greeting
     
     def _generate_core_analysis(self, birth_info: Dict[str, Any], knowledge: List[Dict]) -> str:
         """오행팔괘를 통한 천기 분석"""
@@ -462,6 +486,51 @@ class SajuMasterAI:
         ]
         
         return random.choice(messages)
+    
+    def _process_calendar_conversion(self, birth_info: Dict[str, Any]) -> Dict[str, Any]:
+        """음력/양력 달력 변환 처리"""
+        
+        processed_info = birth_info.copy()
+        calendar_type = birth_info.get('calendar_type', 'solar')
+        
+        # 음력인 경우에만 양력으로 변환
+        if calendar_type == 'lunar':
+            try:
+                from korean_lunar_calendar import KoreanLunarCalendar
+                
+                # 음력 정보 추출
+                lunar_year = int(birth_info.get('birth_year', 2000))
+                lunar_month = int(birth_info.get('birth_month', 1))
+                lunar_day = int(birth_info.get('birth_day', 1))
+                
+                # 윤달 여부 (기본값: False, 향후 프론트엔드에서 추가 가능)
+                is_leap = birth_info.get('is_leap_month', False)
+                
+                # 음력을 양력으로 변환
+                calendar = KoreanLunarCalendar()
+                calendar.setLunarDate(lunar_year, lunar_month, lunar_day, is_leap)
+                
+                # 변환된 양력 날짜
+                solar_date = calendar.SolarIsoFormat()  # YYYY-MM-DD 형식
+                solar_year, solar_month, solar_day = solar_date.split('-')
+                
+                # 변환된 날짜로 업데이트
+                processed_info.update({
+                    'birth_year': int(solar_year),
+                    'birth_month': int(solar_month),
+                    'birth_day': int(solar_day),
+                    'original_calendar_type': 'lunar',
+                    'converted_to_solar': True
+                })
+                
+                print(f"음력 변환: {lunar_year}-{lunar_month}-{lunar_day} → {solar_year}-{solar_month}-{solar_day}")
+                
+            except Exception as e:
+                print(f"음력 변환 오류: {e}")
+                # 오류 시 원본 데이터 사용 (오류 메시지 숨김)
+                processed_info['conversion_error'] = True
+        
+        return processed_info
     
     async def get_enhanced_response(self, query: str, context: Dict[str, Any]) -> str:
         """
